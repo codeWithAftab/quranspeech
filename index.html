@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Record Audio</title>
+  <style>
+    body {
+      background-image: url('./back.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-top: 50px;
+      font-family: Arial, sans-serif;
+    }
+
+    button {
+      background-color: #0b5524;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 30px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #29578E;
+    }
+
+    #start {
+      margin-right: 10px;
+    }
+
+    #controls {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    #player {
+      display: block;
+      margin: 0 auto;
+      margin-top: 30px;
+      width: 50%;
+    }
+    .center{
+        text-align: center;
+    }
+  </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Record Audio</h1>
+        <div class="center">
+            <audio id="player" controls></audio>
+            <button id="start">Start Recording</button>
+            <button id="stop">Stop Recording</button>
+            <div>
+                <button id="send">Send</button>
+            </div>
+        </div>
+        
+    </div>
+  
+  <script>
+    let chunks = [];
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        const mediaRecorder = new MediaRecorder(stream);
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const audioPlayer = document.getElementById('player');
+
+        startButton.onclick = () => {
+          mediaRecorder.start();
+          startButton.textContent = "Pause"
+          stopButton.textContent = "Stop Recording"
+          console.log('Recording started');
+        }
+
+        stopButton.onclick = () => {
+          mediaRecorder.stop();
+          chunks = []  
+          startButton.textContent = "Start Recording"
+          stopButton.textContent = "Recording Stopped"
+          console.log('Recording stopped');
+        }
+
+        mediaRecorder.ondataavailable = e => {
+            console.log(chunks)
+          chunks.push(e.data);
+        }
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          audioPlayer.src = URL.createObjectURL(audioBlob);
+        }
+
+      })
+      .catch(error => console.error(error));
+      function sendAudio(chunks) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+
+          const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+
+          const formData = new FormData();
+          let headers = new Headers();
+            headers.append('Content-Type', 'application/json');
+            headers.append('Accept', 'application/json');
+
+            headers.append('Access-Control-Allow-Origin', 'http://localhost:5500');
+            headers.append('Access-Control-Allow-Credentials', 'true');
+
+            headers.append('GET', 'POST', 'OPTIONS');
+
+          formData.append('audio', audioBlob, 'audio.webm');
+          fetch("http://52.10.166.149:5000/recognize/", {
+            method: 'POST',
+            body: formData,
+            headers: headers
+          })
+          .then(response => response.json())
+          .then(data => console.log(data))
+          .catch(error => console.error(error));
+
+        //   console.log("Finish")
+        }
+      const senButton = document.getElementById('send');
+
+      senButton.onclick = () => {
+        console.log("Finish")
+        sendAudio(chunks);
+      }
+  </script>
+</body>
+</html>
